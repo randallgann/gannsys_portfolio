@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# terraform
+.terraform/providers/registry.terraform.io/hashicorp/google/5.34.0/windows_amd64/terraform-provider-google_v5.34.0_x5.exe
+terraform.tfvars
+terraform.tfstate.backup
+terraform.tfstate
+.terraform.lock.hcl
+.terraform/providers/registry.terraform.io/hashicorp/google/5.34.0/windows_amd64/LICENSE.txt

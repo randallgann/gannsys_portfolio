@@ -42,3 +42,8 @@ terraform.tfstate.backup
 terraform.tfstate
 .terraform.lock.hcl
 .terraform/providers/registry.terraform.io/hashicorp/google/5.34.0/windows_amd64/LICENSE.txt
+terraform/env/production/.terraform
+
+# local dev glcoud service account keys
+/service_account_key_files
+

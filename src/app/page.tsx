@@ -11,15 +11,13 @@ import {
   LinkedInIcon,
   XIcon,
 } from '@/components/SocialIcons'
-import logoAirbnb from '@/images/logos/airbnb.svg'
-import logoFacebook from '@/images/logos/facebook.svg'
-import logoPlanetaria from '@/images/logos/planetaria.svg'
-import logoStarbucks from '@/images/logos/starbucks.svg'
-import image1 from '@/images/photos/image-1.jpg'
-import image2 from '@/images/photos/image-2.jpg'
-import image3 from '@/images/photos/image-3.jpg'
-import image4 from '@/images/photos/image-4.jpg'
-import image5 from '@/images/photos/image-5.jpg'
+import charlesschwab from '@/images/logos/charlesschwab.svg'
+import logofdm from '@/images/logos/fdm.svg'
+import logoetex from '@/images/logos/etex-digital.svg'
+import logoallaso from '@/images/logos/allasoranch.svg'
+import image1 from '@/images/photos/terraform.png'
+import image2 from '@/images/photos/suggestion-app.png'
+import image3 from '@/images/photos/gcp-cloud-arch.png'
 import { type ArticleWithSlug, getAllArticles } from '@/lib/articles'
 import { formatDate } from '@/lib/formatDate'
 
@@ -187,35 +185,35 @@ function Role({ role }: { role: Role }) {
 function Resume() {
   let resume: Array<Role> = [
     {
-      company: 'Planetaria',
-      title: 'CEO',
-      logo: logoPlanetaria,
-      start: '2019',
+      company: 'Charles Schwab',
+      title: 'Specialist - Software Engineering',
+      logo: charlesschwab,
+      start: '2023',
       end: {
         label: 'Present',
         dateTime: new Date().getFullYear().toString(),
       },
     },
     {
-      company: 'Airbnb',
-      title: 'Product Designer',
-      logo: logoAirbnb,
-      start: '2014',
-      end: '2019',
+      company: 'FDM Group Inc.',
+      title: 'Software Developer',
+      logo: logofdm,
+      start: '2021',
+      end: '2023',
     },
     {
-      company: 'Facebook',
-      title: 'iOS Software Engineer',
-      logo: logoFacebook,
-      start: '2011',
-      end: '2014',
+      company: 'E-Tex Digital LLC',
+      title: 'IT Field Technician',
+      logo: logoetex,
+      start: '2015',
+      end: '2021',
     },
     {
-      company: 'Starbucks',
-      title: 'Shift Supervisor',
-      logo: logoStarbucks,
-      start: '2008',
-      end: '2011',
+      company: 'Allaso Ranch Retreat Center',
+      title: 'Network Manager',
+      logo: logoallaso,
+      start: '2013',
+      end: '2015',
     },
   ]
 
@@ -230,10 +228,17 @@ function Resume() {
           <Role key={roleIndex} role={role} />
         ))}
       </ol>
-      <Button href="#" variant="secondary" className="group mt-6 w-full">
+      <a
+        href="/Randall_Gann_Resume_2024.pdf"
+        download="RandallGannCV.pdf"
+        target="_blank"
+        rel="noreferrer"
+      >
+      <Button variant="secondary" className="group mt-6 w-full">
         Download CV
         <ArrowDownIcon className="h-4 w-4 stroke-zinc-400 transition group-active:stroke-zinc-600 dark:group-hover:stroke-zinc-50 dark:group-active:stroke-zinc-50" />
       </Button>
+      </a>
     </div>
   )
 }
@@ -244,7 +249,7 @@ function Photos() {
   return (
     <div className="mt-16 sm:mt-20">
       <div className="-my-4 flex justify-center gap-5 overflow-hidden py-4 sm:gap-8">
-        {[image1, image2, image3, image4, image5].map((image, imageIndex) => (
+        {[image1, image2, image3].map((image, imageIndex) => (
           <div
             key={image.src}
             className={clsx(
@@ -276,22 +281,22 @@ export default async function Home() {
             Software Engineering and DevOps
           </h1>
           <p className="mt-6 text-base text-zinc-600 dark:text-zinc-400">
-            I’m Randall, a software and dev ops engineer based near Dallas, TX. I’m no founder or CEO but I do find my job fascinating, and here you can watch me investigate ideas and concepts related to all things software.
+            I’m Randall, a software and dev ops engineer living near Dallas, TX. I’m no founder or CEO but I do find my job fascinating, and here you can watch me investigate ideas and concepts related to all things software.
           </p>
           <div className="mt-6 flex gap-6">
-            <SocialLink href="#" aria-label="Follow on X" icon={XIcon} />
+            <SocialLink href="https://x.com/RandallGann" aria-label="Follow on X" icon={XIcon} />
             <SocialLink
-              href="#"
+              href="https://www.instagram.com/llmexpert.io/"
               aria-label="Follow on Instagram"
               icon={InstagramIcon}
             />
             <SocialLink
-              href="#"
+              href="https://github.com/randallgann"
               aria-label="Follow on GitHub"
               icon={GitHubIcon}
             />
             <SocialLink
-              href="#"
+              href="https://www.linkedin.com/in/rgannsys/"
               aria-label="Follow on LinkedIn"
               icon={LinkedInIcon}
             />

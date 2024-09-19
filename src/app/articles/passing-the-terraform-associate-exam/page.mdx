@@ -1,0 +1,82 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import designSystem from './planetaria-design-system.png'
+import practice1 from './terraform_practice_1.png'
+import practice2 from './terraform_practice_2.png'
+import practice3 from './terraform_practice_3.png'
+import practice4 from './terraform_practice_4.png'
+
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2024-09-12',
+  title: 'Terraform Associate Exam',
+  description:
+    'This is how I studied for and passed the Terraform Associate Exam.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+The company I work for is slowly shifting into GCP and AWS and will be adopting Terraform to manage their cloud infrastructure.  To prepare for this transition, I have been casually studying Terraform for the past few months, working through employer provided training modules and doing small projects on my own.
+
+Today is August 16th, 2024 and I have scheduled my Terraform Associate Exam 3 weeks from now for September 6th, 2024.
+
+## Study Resources Used
+Anki Deck Download
+
+[Hashicorp Certified Terraform Associate (003) Cert Prep | LinkedIn Learning](https://www.linkedin.com/learning/hashicorp-certified-terraform-associate-003-cert-prep)
+
+[HashiCorp Certified: Terraform Associate (003) Cert Prep by KodeKloud | LinkedIn Learning](https://www.linkedin.com/learning/hashicorp-certified-terraform-associate-003-cert-prep-by-kodekloud)
+
+## Practice Test 1
+Step 1 will be to determine where my current level of understanding is and what elements I need to focus on.  I've purchased this practice test from Udemy [Terraform Associate (003) - Exam Practice Test](https://www.udemy.com/share/10aoAs3@hLKq1wjito4szAL7ktQHu6I4UQIwjYpZ80w8vDnrnKpTy9v_J40o2WPrIPsEgNf3/) .
+
+First test I didn't spend too much time, I finished 50 questions in 20 minutes.  Here I was just trying to get a feel for the types of questions being asked.  I'm concentrating on the terms this first go round, not so much the concepts that the question might be asking about.  I wanted to get a quick understanding of the difficulty and syntax of the questions.  As expected I didn't do very well, indicating that there is significant work to do
+
+<Image src={practice1} alt="" />
+
+## Analysis of Test Questions
+I noticed a few minor mistakes in this practice test but for the most part I feel that it was accurate enough to continue to use.
+
+My process is to take the questions I missed and add those to Anki deck.
+
+## Practice Test 2
+I'm making good progress.  After failing the first test, reviewing the questions I missed and adding concepts to my Anki Deck, the second test proved out the process with a passing grade of 76%.  Still not where I want to be to confidently take the exam but it is a step in the right direction.
+
+<Image src={practice2} alt="" />
+
+
+## Analysis of Test Questions
+I didn't notice much in the way of increasing difficulty of these "level 2" questions vs. the first test.  Some questions were related to state files and how Terraform interacts with those which are a little more difficult in my opinion but not so much that it caused me concern for passing the test.
+
+Again, same as step before I take the questions I missed, add those the Anki deck and will study those for a day or so before taking the next practice test.
+
+## Practice Test 3
+On to the "Level 3" difficulty test in Udemy and again I didn't notice a significant increasing level of difficulty.  More questions of the same type, introducing new concepts but nothing that can't be learned quickly by studying the specific terms related to the questions I missed.
+
+Still making good progress here, continuing to score higher on the practice tests.  I'm very satisfied with an 80% on this test as it indicates that my knowledge level is increasing and I'm becoming more comfortable with the terms and concepts presented.  The overall process is working and I'm getting more confident that I will be able to pass the test with my current level of understanding.
+
+<Image src={practice3} alt="" />
+
+## Analysis of Test Questions
+I noticed there were more questions asked about state locking and the state file itself.  I've added those concepts to the Anki deck and also read up on the Terraform documentation specifically related to state file locking and how terraform handles it in different environments.
+
+## Practice Test 4
+I'm taking this 4th practice test on exam day.  I've run out of time to take all the test but after scoring even higher on this test I'm confident I will at least be able to score a passing grade and get the cert.  Same as previous test, I wouldn't necessarily say that the questions are more difficult just that they are asked in different ways.  And I've covered most all of the concepts necessary in the previous tests so this test seems like more of the same.
+
+I will be moving forward with the exam and hopefully score a passing grade.
+
+<Image src={practice4} alt="" />
+
+## Test Day - 9/6/2024
+I chose to do the online proctored exam.  I've taken a GCP exam in this format previously so I kind of knew what to expect.  Once I logged in the proctor asked to verify my identity, I had to present my ID on the camera and provide a 360 degree scan of the area I was sitting in.  This process went smoothly and I was quickly able to start the test.
+
+The test questions themselves were very reflective of the practice test questions presented in the Udemy tests.  I even found that at least two of the questions in the test were exactly reproduced in the Udemy tests so overall I'm very satisfied with the practice test purchase from Udemy.
+
+Difficulty level of the test was average to easy.  As long as you prepare with practice tests and learn the concepts presented in those tests you should be fine to pass.  Compared to the GCP Pro Architecture exam, this Terraform Associate Exam was much less difficult.
+
+

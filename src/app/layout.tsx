@@ -12,7 +12,7 @@ export const metadata: Metadata = {
       'Randall Gann - Software Engineering and DevOps',
   },
   description:
-    'I’m Randall, a software and dev ops engineer based near Dallas, TX. I’m no founder or CEO but I do find my job fascinating, and here you can watch me investigate ideas and concepts related to all things software.',
+    'I’m Randall, a software and dev ops engineer living near Dallas, TX. I’m no founder or CEO but I do find my job fascinating, and here you can watch me investigate ideas and concepts related to all things software.',
   alternates: {
     types: {
       'application/rss+xml': `${process.env.NEXT_PUBLIC_SITE_URL}/feed.xml`,

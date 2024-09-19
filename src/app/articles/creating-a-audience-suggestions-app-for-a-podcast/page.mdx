@@ -1,0 +1,43 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import designSystem from './suggestion-app.png'
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2023-12-05',
+  title: 'Creating an audience suggestions app for a youtube channel',
+  description:
+    'If you have a youtube channel or podcast chances are you want to be able to interact in a collaborative way with your viewers, this app allows uers to make suggestions for topics and upvote suggestions made by other users.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+Most content creators feel the pain at some point of not being able to interact with their audience.  I wrote and designed this application to make it easy for viewers and listeners of the Mikey and Me podcast to suggest and upvote topics for conversation.
+
+<Image src={designSystem} alt="" />
+
+I knew that to get it right I was going to have to create a visually appealing and intuitive user interface so that audience members could quickly and easily login, make topic suggestions and upvote suggestions by other viewers.
+
+## The Tech Stack
+
+I wanted to create a modern web app using the latest version of Next.js and React framework.
+
+Additionally, I wanted the app to be cloud native so that it could be easily replicated by other developers who wanted to accomplish a similar purpose.  It integrated Terraform into the app for easy cloud deployment, utilizing Google Cloud Platform along the way to host the app.  The app runs as a containerized Cloud Function service along with Google Firestore as a backend database.
+
+```c
+Terraform Google Provider Code Here
+```
+
+Terraform makes it quick and easy to deploy code to both develop and production environments, keeping code separated for consistent and constant iteration.
+
+## Functionality
+
+I wanted to give the podcast owners administrative abilities to curate the list as needed.  Also, I wanted to give the audience users the ability to quickly filter topics so that as the list of topics gets larger and larger it is easy to find topic categories and filter out things that aren't of interest.
+
+1. Admins has the ability to delete and set statuses of individual topics
+2. Users can filter by topic category as well as status
+3. Audience members can quickly sort the list to topics by newness and/or popularity

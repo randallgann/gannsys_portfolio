@@ -1,0 +1,100 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import drawiodiagram from './RealEstateDataArch.drawio.png'
+import insomniabody from './insomnia-body.png'
+import insomniaheaders from './insomnia-headers.png'
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2024-07-18',
+  title: 'Ingesting Real Estate Data To GCP BigQuery',
+  description:
+    'This article is a walk through of a recent GCP side project that I decided to do.  In this project I implement Google Cloud Functions to ingest a CSV file of real estate data into BigQuery.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+<Image src={drawiodiagram} alt="" />
+
+## Processing Real Estate Data with Google Cloud Functions: A Case Study
+
+When building scalable applications in the cloud, it’s critical to design processes that can handle large datasets without hitting performance bottlenecks. This recently completed project, focused on processing MLS residential property data by ZIP code, and provided me a deep dive into overcoming challenges related to using Google Cloud Functions, Cloud Storage, and BigQuery.
+
+## The Challenge: Managing Large Real Estate Data
+
+The main task was to process a CSV file containing real estate data by ZIP code. The data included residential homes found on the MLS (Multiple Listing Service), and the CSV file was quite large. Initially, I built a single Cloud Function to handle the entire CSV processing in one go, but I quickly ran into an issue.
+
+Google Cloud Functions have a default timeout duration of 9 minutes, and this simply wasn’t enough to handle the large data set in one function. The upload process would fail repeatedly due to timeout constraints. This meant I had to rethink the architecture, ensuring that the function could process the data in a more modular, manageable way.
+
+## The Solution: A Multi-Function Approach
+
+To solve the problem, I split the processing task across two Cloud Functions, coupled with two Google Cloud Storage buckets.
+
+1. **Cloud Storage Buckets:**  
+   - **csv-by-zip:** The entry point for large CSV files containing the real estate data by ZIP code.
+   - **csv-by-zip-split-files:** A storage location for smaller split files, which are easier to process within the time limits.
+
+2. **First Cloud Function:**  
+   When a CSV file is uploaded to the `csv-by-zip` bucket, the first Cloud Function, **create-csv-split-files**, is triggered. This function splits the original CSV into smaller files and stores them in the `csv-by-zip-split-files` bucket. This modular approach resolved the timeout issue, making it feasible to handle larger datasets.
+
+3. **Second Cloud Function:**  
+   As the split files are uploaded to the `csv-by-zip-split-files` bucket, the second Cloud Function, **load-csv-to-bigquery**, is triggered. This function takes the split files and loads the data into a BigQuery table called `mls_defined_properties_table`.
+
+## Tech Stack
+
+This project is built using Google Cloud Functions written in **C#**, one of the supported languages for developing serverless functions on Google Cloud Platform (GCP). Google Cloud Functions is a versatile platform that allows you to build event-driven applications across a variety of languages. In addition to **C#**, other supported languages include **Node.js**, **Python**, **Go**, **Ruby**, and **Java**, making it a flexible option for developers working with various technologies.
+
+To kick-start the project, I used the following commands to create a new C# Cloud Function that processes the real estate data:
+
+```bash
+dotnet new -i Google.Cloud.Functions.Templates
+dotnet new gcf-event -n LoadCsvToBigQuery
+```
+This initializes the function with the **Google.Cloud.Functions.Templates** package and sets up the project structure, making it easy to develop, run, and test the function locally before deploying it to GCP. The template provides a scaffold for creating event-driven Cloud Functions, such as those triggered by Google Cloud Storage events, which is the case in this project.
+
+The overall tech stack for the project includes:
+
+- **Google Cloud Functions (C#):** Serverless functions written in C# for processing CSV files.
+- **Google Cloud Storage:** For storing both the original CSV files and the split files.
+- **BigQuery:** A data warehouse solution where the final processed data is loaded and queried.
+
+By using Cloud Functions in C#, I was able to leverage the power of GCP’s serverless architecture while also maintaining the flexibility to handle large data sets efficiently. The combination of C# and the other GCP services created a robust and scalable solution for processing real estate data.
+
+## Overcoming Challenges
+
+While the time-out issue was certainly significant, another equally challenging aspect of working with Cloud Functions was the difficulty of rapidly iterating, testing, and debugging code. In a typical local application, it’s often trivial to write code, run it, and debug locally within the familiar development workflow. However, with Cloud Functions, this process is more complex.
+
+As a developer, you want to test your changes directly in GCP. However, the process of creating and updating a Cloud Function involves zipping the code and uploading it to the cloud. This extra step, although necessary for deployment, can become cumbersome—especially when even minor bug fixes or small changes require the same zipping and uploading process. This overhead quickly becomes frustrating and can slow down development velocity.
+
+Fortunately, I discovered a more efficient approach: Google provides tools that allow you to test and run Cloud Functions locally. This significantly reduced the friction in my development process, as it enabled me to iterate quickly without constantly zipping and uploading code. Here’s how I set up local debugging to replicate the cloud trigger functionality and streamline testing:
+
+### Local Debugging
+
+1. **Creating the Function Locally:**  
+   When creating a new function using `dotnet new gcf-event` or `dotnet new gcf-http`, the `Google.Cloud.Functions.Framework` is included as a dependency. This framework allows you to run the function locally with `dotnet run`, which starts listening on localhost. This simulates how the function would behave if triggered by the cloud event, such as a storage bucket upload.
+
+2. **Setting the Environment Variables:**  
+   To accurately simulate the cloud environment, I set the necessary environment variables locally:
+   - `$Env:TABLE_ID=""`
+   - `$Env:DATASET_ID=""`
+   - `$Env:GCP_PROJECT=""`
+
+3. **Making the Request:**  
+   Once the local function is running, I used Insomnia to make requests and test the function. Here’s an example of the request setup:
+   - **Headers:**
+     <Image src={insomniaheaders} alt="" />
+   - **Body:**
+     <Image src={insomniabody} alt="" />
+
+By running the function locally and closely mirroring the cloud setup, I was able to significantly speed up my testing and debugging cycle. This made the development process smoother and allowed me to focus on iterating quickly without the overhead of zipping and uploading code for every small change.
+
+## Summary
+
+This project demonstrates how cloud-native technologies, such as Google Cloud Functions and BigQuery, can be used to process large datasets efficiently. By splitting the workload across two functions and leveraging Cloud Storage, I was able to overcome the time-out and performance issues associated with large CSV files. Additionally, the use of local debugging tools allowed me to streamline development, ensuring rapid iteration and testing without sacrificing the benefits of cloud deployment.
+
+This multi-function approach provides a flexible and scalable solution, making it easy to handle real estate data or any other large datasets in the future.
+

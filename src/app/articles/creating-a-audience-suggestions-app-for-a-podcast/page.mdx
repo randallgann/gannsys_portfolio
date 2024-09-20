@@ -1,0 +1,56 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import designSystem from './suggestion-app.png'
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2023-12-05',
+  title: 'Creating an audience suggestions app for a youtube channel',
+  description:
+    'If you have a youtube channel or podcast chances are you want to interact in a collaborative way with your viewers, this app allows uers to make suggestions for topics and upvote suggestions made by other users.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+Most content creators feel the pain at some point of not being able to interact with their audience.  I wrote and designed this application to make it easy for viewers and listeners of the [@MikeyandMe](https://www.youtube.com/@Mikey-and-Me) podcast to suggest and upvote topics for conversation.
+
+<Image src={designSystem} alt="" />
+
+I knew that to get it right I was going to have to create a visually appealing and intuitive user interface so that audience members could quickly and easily login, make topic suggestions and upvote suggestions by other viewers.
+
+## The Tech Stack
+
+I wanted to create a modern web app using the latest version of Next.js and React framework.
+
+Additionally, I wanted the app to be cloud native so that it could be easily replicated by other developers who wanted to accomplish a similar purpose.  I integrated Terraform into the app for easy cloud deployment, utilizing Google Cloud Platform along the way to host the app.  The app runs as a containerized Cloud Run service along with Google Firestore as a backend database.
+
+```bash
+provider "google" {
+  project     = var.project
+  region      = var.region
+}
+```
+
+Terraform makes it quick and easy to deploy code to local, develop and production environments, keeping code separated for consistent and constant iteration.
+
+## Functionality
+
+At its core, the app is designed to make interacting with the audience as smooth as possible, while giving podcast admins the flexibility to manage and curate the list of suggestions. Viewers and listeners can easily log in using Auth0 for a seamless, secure experience, making it straightforward to contribute topic suggestions or vote on existing ones.
+
+To ensure that the app scales and performs efficiently, it's hosted on Google Cloud Platform (GCP) using Google Cloud Run and Firestore for the backend. This cloud-native setup makes deployment easy and reliable across different environments, from local development to full production.
+
+With the help of Terraform, I automated the deployment process, keeping environment configurations separate and ensuring that updates to the app can be pushed out quickly. Whether it's a small tweak or a major iteration, deployment is just a command away.
+
+Here’s a summary of what the app allows:
+
+- **Admins** have the ability to delete topics and set their status (e.g., considering, pending review, talked about).
+- **Users** can filter by topic category and status to quickly find conversations they care about.
+- **Audience members** can sort the list by newness or popularity to highlight trending or recent suggestions.
+- **Auth0 integration** provides a secure login process for all users.
+- **Terraform automation** ensures quick and easy deployment to GCP, with separate environments for development and production.
+
+As the list of suggestions grows, this functionality ensures the app remains organized, easy to navigate, and a powerful tool for engaging with the podcast community.

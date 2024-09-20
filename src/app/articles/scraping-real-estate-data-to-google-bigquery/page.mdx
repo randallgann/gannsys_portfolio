@@ -1,4 +1,7 @@
 import { ArticleLayout } from '@/components/ArticleLayout'
+import drawiodiagram from './RealEstateDataArch.drawio.png'
+import insomniabody from './insomnia-body.png'
+import insomniaheaders from './insomnia-headers.png'
 
 export const article = {
   author: 'Randall Gann',
@@ -15,90 +18,83 @@ export const metadata = {
 
 export default (props) => <ArticleLayout article={article} {...props} />
 
+<Image src={drawiodiagram} alt="" />
 
+## Processing Real Estate Data with Google Cloud Functions: A Case Study
 
-```js
-import { animate } from '@planetaria/animaginary'
+When building scalable applications in the cloud, it’s critical to design processes that can handle large datasets without hitting performance bottlenecks. This recently completed project, focused on processing MLS residential property data by ZIP code, and provided me a deep dive into overcoming challenges related to using Google Cloud Functions, Cloud Storage, and BigQuery.
 
-export function MyComponent({ open, children }) {
-  return (
-    <animate.div
-      in={open}
-      animateFrom="opacity-0 scale-95"
-      animateTo="opacity-100 scale-100"
-      duration={350}
-    >
-      {children}
-    </animate.div>
-  )
-}
+## The Challenge: Managing Large Real Estate Data
+
+The main task was to process a CSV file containing real estate data by ZIP code. The data included residential homes found on the MLS (Multiple Listing Service), and the CSV file was quite large. Initially, I built a single Cloud Function to handle the entire CSV processing in one go, but I quickly ran into an issue.
+
+Google Cloud Functions have a default timeout duration of 9 minutes, and this simply wasn’t enough to handle the large data set in one function. The upload process would fail repeatedly due to timeout constraints. This meant I had to rethink the architecture, ensuring that the function could process the data in a more modular, manageable way.
+
+## The Solution: A Multi-Function Approach
+
+To solve the problem, I split the processing task across two Cloud Functions, coupled with two Google Cloud Storage buckets.
+
+1. **Cloud Storage Buckets:**  
+   - **csv-by-zip:** The entry point for large CSV files containing the real estate data by ZIP code.
+   - **csv-by-zip-split-files:** A storage location for smaller split files, which are easier to process within the time limits.
+
+2. **First Cloud Function:**  
+   When a CSV file is uploaded to the `csv-by-zip` bucket, the first Cloud Function, **create-csv-split-files**, is triggered. This function splits the original CSV into smaller files and stores them in the `csv-by-zip-split-files` bucket. This modular approach resolved the timeout issue, making it feasible to handle larger datasets.
+
+3. **Second Cloud Function:**  
+   As the split files are uploaded to the `csv-by-zip-split-files` bucket, the second Cloud Function, **load-csv-to-bigquery**, is triggered. This function takes the split files and loads the data into a BigQuery table called `mls_defined_properties_table`.
+
+## Tech Stack
+
+This project is built using Google Cloud Functions written in **C#**, one of the supported languages for developing serverless functions on Google Cloud Platform (GCP). Google Cloud Functions is a versatile platform that allows you to build event-driven applications across a variety of languages. In addition to **C#**, other supported languages include **Node.js**, **Python**, **Go**, **Ruby**, and **Java**, making it a flexible option for developers working with various technologies.
+
+To kick-start the project, I used the following commands to create a new C# Cloud Function that processes the real estate data:
+
+```bash
+dotnet new -i Google.Cloud.Functions.Templates
+dotnet new gcf-event -n LoadCsvToBigQuery
 ```
+This initializes the function with the **Google.Cloud.Functions.Templates** package and sets up the project structure, making it easy to develop, run, and test the function locally before deploying it to GCP. The template provides a scaffold for creating event-driven Cloud Functions, such as those triggered by Google Cloud Storage events, which is the case in this project.
 
-Animaginary is our new web animation library that redefines what you thought was possible on the web. Hand-written in optimized WASM, Animaginary can even animate the `height` property of an element at 60fps.
+The overall tech stack for the project includes:
 
-## Sermone fata
+- **Google Cloud Functions (C#):** Serverless functions written in C# for processing CSV files.
+- **Google Cloud Storage:** For storing both the original CSV files and the split files.
+- **BigQuery:** A data warehouse solution where the final processed data is loaded and queried.
 
-Lorem markdownum, bracchia in redibam! Terque unda puppi nec, linguae posterior
-in utraque respicere candidus Mimasque formae; quae conantem cervice. Parcite
-variatus, redolentia adeunt. Tyrioque dies, naufraga sua adit partibus celanda
-torquere temptata, erit maneat et ramos, [iam](#) ait dominari
-potitus! Tibi litora matremque fumantia condi radicibus opusque.
+By using Cloud Functions in C#, I was able to leverage the power of GCP’s serverless architecture while also maintaining the flexibility to handle large data sets efficiently. The combination of C# and the other GCP services created a robust and scalable solution for processing real estate data.
 
-Deus feram verumque, fecit, ira tamen, terras per alienae victum. Mutantur
-levitate quas ubi arcum ripas oculos abest. Adest [commissaque
-victae](#) in gemitus nectareis ire diva
-dotibus ora, et findi huic invenit; fatis? Fractaque dare superinposita
-nimiumque simulatoremque sanguine, at voce aestibus diu! Quid veterum hausit tu
-nil utinam paternos ima, commentaque.
+## Overcoming Challenges
 
-```c
-exbibyte_wins = gigahertz(3);
-grayscaleUtilityClient = control_uat;
-pcmciaHibernate = oop_virus_console(text_mountain);
-if (stateWaisFirewire >= -2) {
-    jfs = 647065 / ldapVrml(tutorialRestore, 85);
-    metal_runtime_parse = roomComputingResolution - toolbarUpload +
-            ipx_nvram_open;
-} else {
-    maximizeSidebar *= suffix_url(flatbed + 2, requirements_encoding_node +
-            only_qbe_media, minicomputer);
-}
-```
+While the time-out issue was certainly significant, another equally challenging aspect of working with Cloud Functions was the difficulty of rapidly iterating, testing, and debugging code. In a typical local application, it’s often trivial to write code, run it, and debug locally within the familiar development workflow. However, with Cloud Functions, this process is more complex.
 
-Aere repetiti cognataque natus. Habebat vela solutis saepe munus nondum adhuc
-oscula nomina pignora corpus deserat.
+As a developer, you want to test your changes directly in GCP. However, the process of creating and updating a Cloud Function involves zipping the code and uploading it to the cloud. This extra step, although necessary for deployment, can become cumbersome—especially when even minor bug fixes or small changes require the same zipping and uploading process. This overhead quickly becomes frustrating and can slow down development velocity.
 
-## Lethaei Pindumve me quae dinumerat Pavor
+Fortunately, I discovered a more efficient approach: Google provides tools that allow you to test and run Cloud Functions locally. This significantly reduced the friction in my development process, as it enabled me to iterate quickly without constantly zipping and uploading code. Here’s how I set up local debugging to replicate the cloud trigger functionality and streamline testing:
 
-Idem se saxa fata pollentibus geminos; quos pedibus. Est urnis Herses omnes nec
-divite: et ille illa furit sim verbis Cyllenius.
+### Local Debugging
 
-1. Captus inpleverunt collo
-2. Nec nam placebant
-3. Siquos vulgus
-4. Dictis carissime fugae
-5. A tacitos nulla viginti
+1. **Creating the Function Locally:**  
+   When creating a new function using `dotnet new gcf-event` or `dotnet new gcf-http`, the `Google.Cloud.Functions.Framework` is included as a dependency. This framework allows you to run the function locally with `dotnet run`, which starts listening on localhost. This simulates how the function would behave if triggered by the cloud event, such as a storage bucket upload.
 
-Ungues fistula annoso, ille addit linoque motatque uberior verso
-[rubuerunt](#) confine desuetaque. _Sanguine_ anteit
-emerguntque expugnacior est pennas iniqui ecce **haeret** genus: peiora imagine
-fossas Cephisos formosa! Refugitque amata [refelli](#)
-supplex. Summa brevis vetuere tenebas, hostes vetantis, suppressit, arreptum
-regna. Postquam conpescit iuvenis habet corpus, et erratica, perdere, tot mota
-ars talis.
+2. **Setting the Environment Variables:**  
+   To accurately simulate the cloud environment, I set the necessary environment variables locally:
+   - `$Env:TABLE_ID=""`
+   - `$Env:DATASET_ID=""`
+   - `$Env:GCP_PROJECT=""`
 
-```c
-digital.webcam_dual_frequency = webmasterMms;
-if (5 + language_standalone_google) {
-    cc_inbox_layout *= file_character;
-    task += p;
-    lockUnicode += enterprise_monochrome(tokenFunctionPersonal, keyVirtual,
-            adf);
-}
-windows_binary_esports(87734, array(restoreRomTopology, adRaw(407314),
-        dongleBashThumbnail), interpreter);
-```
+3. **Making the Request:**  
+   Once the local function is running, I used Insomnia to make requests and test the function. Here’s an example of the request setup:
+   - **Headers:**
+     <Image src={insomniaheaders} alt="" />
+   - **Body:**
+     <Image src={insomniabody} alt="" />
 
-Sit volat naturam; motu Cancri. Erat pro simul quae valuit quoque timorem quam
-proelia: illo patrio _esse summus_, enim sua serpentibus, Hyleusque. Est coniuge
-recuso; refert Coroniden ignotos manat, adfectu.
+By running the function locally and closely mirroring the cloud setup, I was able to significantly speed up my testing and debugging cycle. This made the development process smoother and allowed me to focus on iterating quickly without the overhead of zipping and uploading code for every small change.
+
+## Summary
+
+This project demonstrates how cloud-native technologies, such as Google Cloud Functions and BigQuery, can be used to process large datasets efficiently. By splitting the workload across two functions and leveraging Cloud Storage, I was able to overcome the time-out and performance issues associated with large CSV files. Additionally, the use of local debugging tools allowed me to streamline development, ensuring rapid iteration and testing without sacrificing the benefits of cloud deployment.
+
+This multi-function approach provides a flexible and scalable solution, making it easy to handle real estate data or any other large datasets in the future.
+

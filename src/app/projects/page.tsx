@@ -16,6 +16,13 @@ const projects = [
     link: { href: 'https://github.com/randallgann/suggestions-app-nextjs.git', label: 'github.com' },
     logo: logoAnimaginary,
   },
+  {
+    name: 'Data Ingestion CSV-to-GCP BigQuery',
+    description:
+      'This repo holds two Google Cloud Functions that work together to load CSV file data into BigQuery.',
+    link: { href: 'https://github.com/randallgann/loadCSVToBigQuery-CF.git', label: 'github.com' },
+    logo: logoCosmos,
+  },
 ]
 
 function LinkIcon(props: React.ComponentPropsWithoutRef<'svg'>) {

@@ -49,3 +49,15 @@ resource "google_cloud_run_service_iam_member" "public" {
   role       = "roles/run.invoker"
   member     = "allUsers"
 }
+
+output "cloud_run_service_location" {
+  value = google_cloud_run_service.default.location
+}
+
+output "cloud_run_service_name" {
+  value = google_cloud_run_service.default.name
+}
+
+output "project_id" {
+  value = var.project
+}

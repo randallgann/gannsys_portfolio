@@ -7,7 +7,7 @@ module "app" {
   service_name         = var.service_name
 }
 
-resource "google_cloud_run_domain_mapping" "default" {
+resource "google_cloud_run_domain_mapping" "domain-pro" {
   name     = "gannsystems.pro"
   location = module.app.cloud_run_service_location
   project  = module.app.project_id 

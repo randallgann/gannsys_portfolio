@@ -1,0 +1,95 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import image1 from './APIKEYError.png'
+import image2 from './dockerLogs.png'
+import image3 from './appsettings.json.png'
+import image4 from './semantic-success-gcp.png'
+
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2024-10-25',
+  title: 'Semantic Kernel Running on Google Cloud',
+  description: "Semantic Kernel is a Large Language Model orchestration framework being actively developed by Microsoft.  This project is a learning effort to better understand the internals of Semantic Kernel and investigate it's deployment into production environments.",
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+
+## To-Do
+
+- [x] Create separate webapi and webapp projects
+- [ ] Build out frontend webapp
+
+## Isolate webapi into a new project
+
+- Copy over webapi and dependencies from https://github.com/microsoft/chat-copilot.git.  Here are the directories necessary to get the .net api running.
+
+```
+	/sk-web-api
+		/integration-tests
+		/memorypipeline
+		/plugins
+		/shared
+		/tools
+		/webapi
+		/ssl-cert
+		CopilotChat.sln
+```
+- `dotnet build`
+- `cd /webapi`
+- `dotnet run`
+	**Error - APIKey is empty**<Image src={image1} alt="" />
+			
+	This was fixed by add/changes to ```appsettings.json``` replace 'AzureOpenAI' instances with 'OpenAI' and  adding 'APIKey' in "Services - OpenAI"
+		Change to OpenAI in: 
+		"KernelMemory - line 163"
+		"DataIngestion - line 182"
+		"Retrieval - line 198"
+		
+- Send a request to the api
+	- **Error - Microsoft.AspNetCore.Hosting.Diagnostics: Information: Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:40443/swagger, Response status code: 404**
+		This we because both debugger in VS Code and dotnet run was not running the app in Development mode.  I had to set the env var, now swagger ui is coming up.
+			`export ASPNETCORE_ENVIRONMENT=Development`
+			`dotnet run`
+- Dockerize the api
+	1. Ran `VSCode Docker:Add Dockerfiles to workspace`
+	2. Ran `VSCode Docker:Build Image`
+	3. Attempting to run the image
+			**Error Unable to configure HTTPS endpoint. No server certificate was specified, and the default developer certificate could not be found or is out of date.**
+	4. Created .crt and .key files using openssl.  Modified the Dockerfile to copy those files into the image
+	5. The image will boot and log messages indicate listening on the correct port.  The strange thing is I had it working.  Came back the next day and now I'm getting this refusal to connct even though everything seems to be open on both the docker container and my windows host.
+			**Error - Can't reach the webpage browser error**
+			<Image src={image2} alt="" />
+
+		This issue took me a while to figure out.  I provided a list of all the various commands I ran to troubleshoot this issue.  In the end the resolution was to change the kestrel url in appsettings.json to 0.0.0.0:40443 rather than localhost:40443
+		<Image src={image3} alt="" />
+
+		This issue happened again after re-visiting this process.  I changed the Url as before but this time did not fix the issue.  It actually did fix the issue, I was just trying to access the url wrong.  So for Docker it is required for the Url to be configured to listen on all network interfaces 0.0.0.0 but whenever you are trying to access the url either running local or in a docker container you must use https://localhost:40443.  0.0.0.0 is not a specific address that you can access directly in the browser, for this reason us https://localhost:40443.
+
+## Deploy To GCP
+
+1. Create billing account for the project
+2. Create a new project
+3. Enable Artifact Registry API
+4. Create new AR repo
+5. Tag docker repo `docker tag skwebapi us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest`
+6. Push docker repo `docker push us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest`
+7. Create the cloud run service instance using the image. Set networking to `internal` and `allow unauthenticated`.  This will disable the URL link because we are only allowing traffic from within the project.  This will also prevent traffic from cloud console even within the same project so we won't be able to validate the api using cloud console.  Used this as reference for creating a way to validate the api deployment [Access Cloud Run with Internal Only Ingress Setting from Shared VPC | by Murli Krishnan | Google Cloud - Community | Medium](https://medium.com/google-cloud/access-cloud-run-with-internal-only-ingress-setting-from-shared-vpc-913d3e2d70ee)
+8. Create a vm instance on the same project.  Connect via SSH and run the command 
+	- `curl -X POST -H "Content-Type: application/json" -d '{"title": "My Test Chat"}' https://skwebapi8080http-879200966247.us-south1.run.app/chats -v`
+	- `curl -H "Content-Type: application/json" https://skwebapi8080http-879200966247.us-south1.run.app/chats`
+
+###### Semantic Kernel Successfully Running in GCP Cloud Run <Image src={image4} alt="" />
+
+## Next step is to build out the web app frontend.
+**To Be Continued**
+
+## Troubleshooting Guide
+#### Error when deploying to GCP - 503 Service Unavailable
+
+Issue was happening because the app was setup to listen on https using port 40443.  GCP requires apps to listen on HTTP 8080.

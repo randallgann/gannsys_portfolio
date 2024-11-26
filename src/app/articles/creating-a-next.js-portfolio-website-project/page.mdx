@@ -1,0 +1,260 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import image1 from './gcp-projects.png'
+import image2 from './ArtifactRegistryImagesList.png'
+import image3 from './go-into-cloudrun-service.png'
+import image4 from './manage-custom-domains.png'
+import image5 from './plus-add-mapping.png'
+import image6 from './cloud-run-mappings.png'
+import image7 from './add-mapping.png'
+import image8 from './verify-in-search-console.png'
+import image9 from './copied-provided-dns.png'
+import image10 from './ownership-verified.png'
+import image11 from './add-aaaa-mappings.png'
+import image12 from './gannsystems-google-dns.png'
+
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2024-11-26',
+  title: 'Creating A Next.js Portfolio Website Project',
+  description: "This blog post is a detailed technical guide documenting the process of building and deploying a professional portfolio website using Next.js 14 and the Tailwind CSS Spotlight template.  I walk through the complete development workflow, including project setup, containerization with Docker, infrastructure automation using Terraform, and deployment to Google Cloud Platform's Cloud Run service.",
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+
+
+Hi there! My name is Randall. Follow along as I build a professional portfolio website to showcase my software engineering projects.
+
+## Tech Stack
+
+- Next.js 14
+- [Spotlight Template](https://tailwindui.com/templates/spotlight) from Tailwind UI
+- TypeScript
+- Google Cloud Platform
+- Terraform
+
+The website will be hosted on GCP Cloud Run, with Terraform handling automated deployment.
+
+## Project Overview
+
+### Completed Tasks
+- [x] Project Creation
+- [x] GitHub Repository Setup & Sync
+- [x] Docker Configuration
+- [x] Terraform & GCP Setup
+- [x] Spotlight Template Deployment
+- [x] Content Personalization
+- [x] Domain Assignment
+- [x] Obsidian Files Publication
+
+## Project Setup
+
+### Configure Google Cloud and Bootstrap the Project
+
+1. Create two GCP projects:
+   - `gannsys-portfolio-develop`
+   - `gannsys-portfolio`
+
+2. Create a new billing account and link it to both projects for cost tracking.
+   <Image src={image1} alt="" />
+
+3. Create a Github repo for the project and sync with your local directory.
+
+4. Initialize the Next.js project, choosing Typescript and defaults, run this app in dev mode:
+```bash
+create-next-app
+npm run dev
+```
+
+5. Create a develop branch
+6.  Build an initial version: `npm run build`
+
+### Docker Configuration
+
+Before we make any changes to the boiler plate code go ahead and Dockerize the application easily using VSCode.  The plan will be to host the application as a Cloud Run instance in GCP which requires a Docker container.  I'll go into more detail about the development cycle below but for now just know that we have Docker support added so it will allow us to quickly push any new Docker container created from our local machine to GCP artifact registry.
+
+1. In VS Code:
+   - Press `Ctrl+Shift+P` and select "Docker: Add Docker Files To Workspace"
+   - Press `Ctrl+Shift+P` and select "Docker Images: Build Image"
+   - Rebuild the Docker image
+
+## Development Workflow
+
+### Development Cycle & Deployment w/o Terraform
+
+1. **Feature Branch Creation**
+   - Create new feature branch off of `develop` branch to isolate changes.
+   - `git checkout -b feature-branch-name develop`
+
+2. **Local Development & Testing**
+   - Implement changes and test locally to ensure functionality.
+
+3. **Docker Build & Test**
+   - Build application `npm run build`
+   - Build the docker image and run it
+	   - `docker build -t us-central1-docker.pkg.dev/gannsys-portfolio-develop/gannsys-portfolio-develop-repo/gannsyswebui:feature-name .`
+	   - `docker run -p 3000:3000 us-central1-docker.pkg.dev/gannsys-portfolio-develop/gannsys-portfolio-develop-repo/gannsyswebui:feature-name
+
+4. **Code Integration**
+   - Merge feature branch to `develop`
+   - Tag Docker image for develop 
+	   - `docker tag us-central1-docker.pkg.dev/gannsys-portfolio-develop/gannsys-portfolio-develop-repo/gannsyswebui:feature-name us-central1-docker.pkg.dev/gannsys-portfolio-develop/gannsys-portfolio-develop-repo/gannsyswebui:develop`
+   - Push to develop container registry
+	   - `docker push us-central1-docker.pkg.dev/gannsys-portfolio-develop/gannsys-portfolio-develop-repo/gannsyswebui:develop`
+   <Image src={image2} alt="" />
+
+5. **Development Deployment**
+   - Update Cloud Run instance in `gcp-develop`
+   - Test on mobile and desktop
+
+6. **Production Deployment**
+   - Create PR from `develop` to `master`
+   - Tag and push production Docker image
+	   - `docker tag us-central1-docker.pkg.dev/gannsys-portfolio-develop/gannsys-portfolio-develop-repo/gannsyswebui:develop us-central1-docker.pkg.dev/gannsys-portfolio/gannsys-portfolio-repo/gannsyswebui:prod`
+	   - `docker push us-central1-docker.pkg.dev/gannsys-portfolio/gannsys-portfolio-repo/gannsyswebui:prod`
+   - Update production Cloud Run instance
+
+This structured development cycle ensures a smooth transition from development to production while maintaining quality and consistency across environments.
+
+As a next step I want to add Terraform support to the project so that as I'm making changes, enhancing features and adding new content I will quickly and easily be able to deploy those changes to the GCP project without the need to login and touch the GCP GUI.
+## Terraform Implementation
+
+### Initial Setup
+
+1. Create configuration files:
+   - `main.tf`
+   - `variables.tf`
+   - `outputs.tf`
+   - `terraform.tfvars`
+
+2. Initialize Terraform:
+```bash
+terraform init
+terraform apply
+```
+
+### Authentication Setup
+
+If you encounter Google API authentication errors:
+
+1. **Create Service Account**
+   - Navigate to IAM & Admin > Service Accounts
+   - Create account with Cloud Run Admin role
+   - Download JSON key file
+   - Update your Terraform files to reference the path to the downloaded JSON credentials file.
+
+2. **Enable Required APIs**
+   - Cloud Resource Manager API
+   - Cloud Run Admin API
+   - Cloud Build API
+
+3. **Validate Regional Compatiblity:**
+	- 
+
+### Project Structure
+
+```
+/terraform
+  /env
+    /dev
+      main.tf
+      variables.tf
+      terraform.tfvars
+    /prod
+      main.tf
+      variables.tf
+      terraform.tfvars
+  /modules
+    /app
+      main.tf
+      variables.tf
+      outputs.tf
+```
+
+### Using Terraform Workspaces
+
+```bash
+# Initialize
+cd /terraform/env/dev
+terraform init
+
+# Create workspace
+terraform workspace new dev
+terraform workspace select dev
+
+# Apply configuration
+terraform apply -var-file="terraform.tfvars"
+```
+
+## Deployment Process Using Terraform
+
+Once Terraform is setup the development process will be the same as above with the exception that after the docker image is pushed to the appropriate GCP project containter repo all that needs to be done is to deploy a new version is  to run the terraform commands.
+
+```bash
+cd /terraform/env/dev or /prod
+terraform init
+terraform plan
+terraform apply
+```
+
+## Domain Configuration
+
+### Assign Domain to Cloud Run Instance
+
+1. Login to your domain registrar
+2. Verify domain ownership in Cloud Run:
+   - Go into your Cloud Run service and click the info icon
+   <Image src={image3} alt="" />
+   - Select "Manage Custom Domains"
+   <Image src={image4} alt="" />
+   - Click "+Add Mapping"
+   <Image src={image5} alt="" />
+   - Configure Cloud Run Mappings
+   <Image src={image6} alt="" />
+   - Complete Add Mapping
+   <Image src={image7} alt="" />
+   - Click "Verify in Search Console"
+   <Image src={image8} alt="" />
+   - Copy provided TXT DNS record
+   <Image src={image9} alt="" />
+   - Add TXT record to your domain registrar
+   - Wait for verification and click Verify
+   <Image src={image10} alt="" />
+   - Add provided A and AAAA records to your domain
+   <Image src={image11} alt="" />
+   - Wait for DNS propagation and SSL certificate generation
+
+## Troubleshooting Guide
+
+#### Repository Not Found
+
+I ran into this error when trying to `docker push` the docker image to google cloud.  Using the following to troubleshoot.
+- Verify gcloud authentication
+- Confirm correct project name in the push command
+- Validate repository name
+- Create new repository if needed - I ended up having to create a new repo in the GCP project, change the repo name in the push command and the operation worked.
+
+#### Domain Assignment Issue
+
+When attempting to transfer my domain name to the cloud run service, after verifying and making the necessary change in the A and AAAA records the transfer still would not complete.  An error finally appeared on the GCP Cloud Run Custom Domains screen saying 'inconsistency' in the domain mapping process.
+
+- Check DNS provider settings
+	- Looking at the Domain DNS settings in the Google admin console I saw that the domain is actually managed by GoDaddy.com and that google provides me a username/password to login.  So google seems to be acting as some sort go between.  And also very curious is the fact that there are two A records in the DNS settings that cannot be deleted.
+- Ensure no conflicting records
+- Consider using a different domain registrar for more DNS control
+	- Doing some googling on this and I found that this is often the case where a third-party that is providing services for the domain, in my case it is google which is providing services as I have this domain registered along with using it as a google workspace and I'm assuming that the fact that it is under a workspace means that google needs these A records to exist.  Why?  I'm not sure.
+	- My next step to resolve this problem will be to attempt a transfer of this domain to another registrar, I will be transferring it to Namecheap.  The hope is that namecheap will offer me more control of these A records and allow me to only use the A records needed by the cloud run service.
+		- This worked.  After moving the domain to Namecheap and creating the A records the GCP domain mapping succeeded.
+- Note: If using Google Workspace, some A records may be unchangeable
+<Image src={image12} alt="" />
+
+#### Favicon Issue
+
+Even though I had changed the favicon, after deploying to production the stock favicon that came with the Tailwind UI download appears in the browser tab.
+- The problem here was that the 'npm run build' command creates a .next file.  The old favicon was cached in this file so even though I was running npm run build after the new favicon was added it was not getting refreshed in the .next file.  This file is needed to start the container.  The resolution was to manually delete the .next file, build the app and then re-build the docker container.

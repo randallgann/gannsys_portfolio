@@ -5,10 +5,16 @@ import { Card } from '@/components/Card'
 import { SimpleLayout } from '@/components/SimpleLayout'
 import logoAnimaginary from '@/images/logos/animaginary.svg'
 import logoCosmos from '@/images/logos/cosmos.svg'
-import logoHelioStream from '@/images/logos/helio-stream.svg'
-import logoOpenShuttle from '@/images/logos/open-shuttle.svg'
+import helioStream from '@/images/logos/helio-stream.svg'
 
 const projects = [
+  {
+    name: 'Mikey & Me Chatbot',
+    description:
+      'This project consists of a frontend Nextjs application and a backend .NET WebAPI using Semantic Kernel to orchestrate interactions with a Vector Database and an LLM.',
+    link: { href: 'https://skwebapp-879200966247.us-south1.run.app/', label: 'Nextjs ChatUi App' },
+    logo: helioStream,
+  },
   {
     name: 'Suggestions App',
     description:

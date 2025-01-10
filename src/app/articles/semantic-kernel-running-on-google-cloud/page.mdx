@@ -3,11 +3,28 @@ import image1 from './APIKEYError.png'
 import image2 from './dockerLogs.png'
 import image3 from './appsettings.json.png'
 import image4 from './semantic-success-gcp.png'
+import image5 from './chat-created-doc-rag.png'
+import image6 from './upload-doc-success.png'
+import image7 from './sk-ask-about-doc.png'
+import image8 from './sk-doc-summary-success.png'
+import image9 from './sk-doc-token-usage.png'
+import image10 from './chat-memory-needs-type.png'
+import image11 from './sk-longterm-working-mem.png'
+import image12 from './sk-get-participants.png'
+import image13 from './sk-user-already-in-session.png'
+import image14 from './sk-doc2-upload-success.png'
+import image15 from './sk-doc2-summary-success.png'
+import image16 from './import-async.png'
+import image17 from './getuserintentasyncfailed.png'
+import image18 from './doc-ref-chat.png'
+import image19 from './doc-persists.png'
+import image20 from './sk-reference-doc-in-response.png'
+import image21 from './webapi-ingress-all.png'
 
 
 export const article = {
   author: 'Randall Gann',
-  date: '2024-10-25',
+  date: '2025-01-09',
   title: 'Semantic Kernel Running on Google Cloud',
   description: "Semantic Kernel is a Large Language Model orchestration framework being actively developed by Microsoft.  This project is a learning effort to better understand the internals of Semantic Kernel and investigate it's deployment into production environments.",
 }
@@ -20,12 +37,32 @@ export const metadata = {
 export default (props) => <ArticleLayout article={article} {...props} />
 
 
-## To-Do
+# Table of Contents
 
-- [x] Create separate webapi and webapp projects
-- [ ] Build out frontend webapp
+- [Introduction](#introduction)
+- [Github Repos](#Github-Repos)
+- [Isolate webapi into a new project](#Webapi)
+- [Deploy To GCP](#Deploy-To-GCP)
+- [Google Secret Manager Setup](#Google-Secret-Manager)
+- [Import Document](#Doc-Import)
+- [Implement RAG using vector database](#RAG-VectorStore)
+- [Setting up the webapp](#Nextjs-WebApp)
+- [Troubleshooting Guide](#Troubleshooting-Guide)
 
-## Isolate webapi into a new project
+## Introduction
+
+Semantic Kernel is a Large Language Model orchestration framework being actively developed by Microsoft. 
+
+This project is a learning effort to better understand the internals of Semantic Kernel and investigate it's deployment into production environments.
+
+This will be an on-going investigation as I deploy the Semantic Kernal web api to GCP and connect a frontend Next.js web application to the kernel for orchestrating interactions with various LLMs.
+
+## Github-Repos
+
+[Frontend NextJs App](https://github.com/randallgann/sk-webapp)
+[Backend .NET Semantic Kernel WebAPI](https://github.com/randallgann/SK-Chat-WebAPI-MikeyAndMe.git)
+
+## Webapi
 
 - Copy over webapi and dependencies from https://github.com/microsoft/chat-copilot.git.  Here are the directories necessary to get the .net api running.
 
@@ -46,19 +83,21 @@ export default (props) => <ArticleLayout article={article} {...props} />
 	**Error - APIKey is empty**<Image src={image1} alt="" />
 			
 	This was fixed by add/changes to ```appsettings.json``` replace 'AzureOpenAI' instances with 'OpenAI' and  adding 'APIKey' in "Services - OpenAI"
-		Change to OpenAI in: 
-		"KernelMemory - line 163"
-		"DataIngestion - line 182"
-		"Retrieval - line 198"
+	
+	Change to OpenAI in: 
+	- "KernelMemory - line 163"
+	- "DataIngestion - line 182"
+	- "Retrieval - line 198"
 		
 - Send a request to the api
 	- **Error - Microsoft.AspNetCore.Hosting.Diagnostics: Information: Request reached the end of the middleware pipeline without being handled by application code. Request path: GET https://localhost:40443/swagger, Response status code: 404**
 		This we because both debugger in VS Code and dotnet run was not running the app in Development mode.  I had to set the env var, now swagger ui is coming up.
-			`export ASPNETCORE_ENVIRONMENT=Development`
+			`export ASPNETCORE_ENVIRONMENT=Development` - not Develop
 			`dotnet run`
+			
 - Dockerize the api
 	1. Ran `VSCode Docker:Add Dockerfiles to workspace`
-	2. Ran `VSCode Docker:Build Image`
+	2. Ran `VSCode Docker:Build Image` or `docker build -t us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest .`
 	3. Attempting to run the image
 			**Error Unable to configure HTTPS endpoint. No server certificate was specified, and the default developer certificate could not be found or is out of date.**
 	4. Created .crt and .key files using openssl.  Modified the Dockerfile to copy those files into the image
@@ -66,30 +105,1105 @@ export default (props) => <ArticleLayout article={article} {...props} />
 			**Error - Can't reach the webpage browser error**
 			<Image src={image2} alt="" />
 
-		This issue took me a while to figure out.  I provided a list of all the various commands I ran to troubleshoot this issue.  In the end the resolution was to change the kestrel url in appsettings.json to 0.0.0.0:40443 rather than localhost:40443
+		The resolution was to change the kestrel url in appsettings.json to 0.0.0.0:40443 rather than localhost:40443
 		<Image src={image3} alt="" />
 
 		This issue happened again after re-visiting this process.  I changed the Url as before but this time did not fix the issue.  It actually did fix the issue, I was just trying to access the url wrong.  So for Docker it is required for the Url to be configured to listen on all network interfaces 0.0.0.0 but whenever you are trying to access the url either running local or in a docker container you must use https://localhost:40443.  0.0.0.0 is not a specific address that you can access directly in the browser, for this reason us https://localhost:40443.
 
-## Deploy To GCP
+## Deploy-To-GCP
 
-1. Create billing account for the project
-2. Create a new project
-3. Enable Artifact Registry API
-4. Create new AR repo
-5. Tag docker repo `docker tag skwebapi us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest`
-6. Push docker repo `docker push us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest`
-7. Create the cloud run service instance using the image. Set networking to `internal` and `allow unauthenticated`.  This will disable the URL link because we are only allowing traffic from within the project.  This will also prevent traffic from cloud console even within the same project so we won't be able to validate the api using cloud console.  Used this as reference for creating a way to validate the api deployment [Access Cloud Run with Internal Only Ingress Setting from Shared VPC | by Murli Krishnan | Google Cloud - Community | Medium](https://medium.com/google-cloud/access-cloud-run-with-internal-only-ingress-setting-from-shared-vpc-913d3e2d70ee)
-8. Create a vm instance on the same project.  Connect via SSH and run the command 
-	- `curl -X POST -H "Content-Type: application/json" -d '{"title": "My Test Chat"}' https://skwebapi8080http-879200966247.us-south1.run.app/chats -v`
-	- `curl -H "Content-Type: application/json" https://skwebapi8080http-879200966247.us-south1.run.app/chats`
+- Create billing account for the project
+- Create a new project
+- Enable Artifact Registry API
+- Create new AR repo
+
+#### Backend WebApi Service
+- Tag docker repo 
+- `docker tag skwebapi us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest`
+-  Push docker repo 
+- `docker push us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest`
+- Create the cloud run service instance using the image. Set networking to `internal` and `allow unauthenticated`.  This will disable the URL link because we are only allowing traffic from within the project.  This will also prevent traffic from cloud console even within the same project so we won't be able to validate the api using cloud console.  Used this as reference for creating a way to validate the api deployment [Access Cloud Run with Internal Only Ingress Setting from Shared VPC | by Murli Krishnan | Google Cloud - Community | Medium](https://medium.com/google-cloud/access-cloud-run-with-internal-only-ingress-setting-from-shared-vpc-913d3e2d70ee)
+- Create a vm instance on the same project.  Connect via SSH and run the command 
+	- `curl -X POST -H "Content-Type: application/json" -d '{"title": "My Test Chat"}' https://cloudrun-url/chats -v`
+	- `curl -H "Content-Type: application/json" https://cloudrun-url/chats`
+	- `curl -X POST -H "Content-Type: application/json" -d '' https://cloudrun-url/api/SuggestedQuestions/generate?sampleSize=5 -v`
+	- `curl -X GET -H "Content-Type: application/json" -d '' https://cloudrun-url/api/SuggestedQuestions/all -v`
 
 ###### Semantic Kernel Successfully Running in GCP Cloud Run <Image src={image4} alt="" />
 
-## Next step is to build out the web app frontend.
-**To Be Continued**
+#### Frontend Nextjs ChatUi
 
-## Troubleshooting Guide
+- Dockerize the app - push command must be run from powershell not wsl terminal
+`docker build -t us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapp:latest .`
+`docker push us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapp:latest`
+- Provide the cloud run url for the backend service as env variable
+`gcloud run deploy frontend-service --set-env-vars "NEXT_PUBLIC_API_URL=https://backend-service-xxxxx-uc.a.run.app"`
+
+## Google-Secret-Manager
+
+It is bad security practice to hardcode the llm api keys into `appsettings.json`.  This is because whenever you dockerize the app the contents of the json file are accessible to anyone having access to the image.  For this reason we will configure the application to import the necessary keys from Google Secret Manager.
+
+Claude conversation to help with this setup.
+[Securely Storing API Keys for .NET Web API in Google Cloud Run - Claude](https://claude.ai/chat/313e5c88-f75b-4c42-abd0-29a0e59badb0)
+
+
+One challenge that I've run into is when moving from local, to local docker, to gcp it has been difficult to successfully use the api key.  The steps for each env are outlined below.
+
+##### LOCAL
+`export ASPNETCORE_ENVIRONMENT=Development`
+`export KernelMemory__Services__OpenAI__APIKey="your-api-key-here" && dotnet run`
+
+For debugging in vscode - add apikey value to launch.json
+```json
+"env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "KernelMemory__Services__OpenAI__APIKey": "your-api-key"
+        },
+```
+##### LOCAL - DOCKER
+```bash
+docker run -p 8080:8080 \ -e KernelMemory__Services__OpenAI__APIKey="your-api-key" \ us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/copilot-chat:latest
+```
+
+or 
+
+```
+docker run -p 8080:8080 --user 0 -v /c/Users/etexd/AppData/Roaming/gcloud/application_default_credentials.json:/app/adc.json -e GOOGLE_APPLICATION_CREDENTIALS="/app/adc.json" us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest
+```
+
+```bash
+docker build -f webapi/Dockerfile -t us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/copilot-chat:latest .
+```
+
+After moving the docker file to root
+
+```
+docker build -t us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest .
+```
+
+##### GCP
+
+Start by adding the Nuget package.
+`dotnet add package Google.Cloud.SecretManager.V1`
+
+The application configurations are added in this class `ConfigurationBuilderExtensions.cs`. Here is the code to handle the GCP secret manager configuration.
+
+```c
+// Add GCP Secret Manager in production environment
+
+        if (useGcpSecretManager && env.Equals("production", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var secretManagerClient = SecretManagerServiceClient.Create();
+                var projectId = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_PROJECT");
+
+                if (!string.IsNullOrEmpty(projectId))
+                {
+                    // Add each secret you want to load
+                    var secrets = new Dictionary<string, string>
+                    {
+                        { "KernelMemory:Services:OpenAI:APIKey", "openai-chat-copilot-apikey" }  // Map config key to secret name
+                    };
+
+                    foreach (var secret in secrets)
+                    {
+                        var secretName = $"projects/{projectId}/secrets/{secret.Value}/versions/latest";
+                        var secretValue = secretManagerClient.AccessSecretVersion(secretName);
+                        
+                        // Add to configuration
+                        builder.AddInMemoryCollection(new[]
+                        {
+                            new KeyValuePair<string, string>(
+                                secret.Key,
+                                secretValue.Payload.Data.ToStringUtf8())
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't throw - this allows the application to still start
+                // even if GCP Secret Manager is not accessible
+                Console.WriteLine($"Failed to load GCP Secrets: {ex.Message}");
+            }
+        }
+```
+
+Come to find out, after debugging locally and attempting to hit a debug point inside ConfigurationBuilderExtensions, this particular class does not come into play upon startup and configuration.
+
+Add GCP to appsettings.json
+```json
+ "GCP": {
+    "ProjectId": "sk-webapi"
+  },
+```
+
+Add call to UseGCP method in Program.cs
+```c
+builder.UseGCPSecrets(options =>
+            {
+                options.ProjectId = builder.Configuration["GCP:ProjectId"];
+                options.SecretMappings = new Dictionary<string, string>
+                {
+                    // Map configuration paths to secret names
+                    ["KernelMemory:Services:OpenAI:APIKey"] = "openai-api-key"
+                };
+            });
+```
+
+Here is the UseGCPSecrets implementation inside SemanticKernelExtensions.cs
+```c
+/// <summary>
+    /// Configures the application to use GCP Secret Manager for sensitive configuration values.
+    /// </summary>
+    /// <param name="builder">The web application builder</param>
+    /// <param name="configure">Action to configure GCP Secrets options</param>
+    public static WebApplicationBuilder UseGCPSecrets(
+        this WebApplicationBuilder builder,
+        Action<GCPSecretsOptions> configure)
+    {
+        var options = new GCPSecretsOptions();
+        configure(options);
+
+        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILoggerFactory>()
+                .CreateLogger(typeof(SemanticKernelExtensions));
+
+        if (string.IsNullOrEmpty(options.ProjectId))
+        {
+            logger.LogError("GCP Project ID is not configured. Secret Manager integration will be skipped.");
+            return builder;
+        }
+  
+        try
+        {
+            var secretManagerClient = SecretManagerServiceClient.Create();
+            foreach (var mapping in options.SecretMappings)
+            {
+                var configPath = mapping.Key;
+                var secretName = mapping.Value;
+
+                try
+                {
+                    logger.LogInformation(
+                        "Attempting to retrieve secret {SecretName} for config path {ConfigPath}",
+                        secretName,
+                        configPath);
+
+                    var secretVersionName = new SecretVersionName(options.ProjectId, secretName, "latest");
+                    var result = secretManagerClient.AccessSecretVersion(secretVersionName);
+                    var secretValue = result.Payload.Data.ToStringUtf8();
+
+                    builder.Configuration[configPath] = secretValue;
+
+                    logger.LogInformation(
+                        "Successfully retrieved and mapped secret {SecretName}",
+                        secretName);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(
+                        ex,
+                        "Failed to retrieve secret {SecretName} for config path {ConfigPath}",
+                        secretName,
+                        configPath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to initialize GCP Secret Manager client");
+        }
+        return builder;
+    }
+```
+## Doc-Import
+
+I'm going to try using a single text file first.  It will be a youtube video transcript text file of over an hour in length.
+
+##### Create a chat using swagger - get back
+
+```json
+chatsession {
+id: ea261b47-6c9a-47c1-9558-5d828260a89e
+title:
+createdOn:
+systemDescription:"define the context the api should live in via a system prompt"
+safeSystemDescription:"can be the same as above" or "different - who knows?"
+memoryBalance: small float
+enabledPlugins: []
+version: }
+
+initialBotMessage {}
+```
+
+**no external api calls yet**
+<Image src={image5} alt="" />
+
+##### Upload document - Successful
+
+```json
+timestamp:
+userId:
+userName: "Default User"
+chatId: "00000000-0000-0000-0000-000000000000"
+content:
+```
+
+```json
+{
+"documents":[{
+ "name":"604CriticalPeriodsPsychedelics.txt",
+ "size":"101.8KB",
+ "isUploaded":"true"
+ }]
+ }
+
+```
+
+<Image src={image6} alt="" />
+
+##### Try asking about the document
+<Image src={image7} alt="" />
+
+- this worked - producing a decent response
+<Image src={image8} alt="" />
+- Size - 101.8KB - fileSize
+- Podcast Length - ~2hr
+- ~50KB/per hour of youtube video
+- how many tokens used? - ~24.5K
+- <Image src={image9} alt="" />
+
+#### Try the GET memories for our chatId
+
+chat memory needs a type - let's find out what that should be
+<Image src={image10} alt="" />
+
+ - inside PromptsOptions we find it must be `LongTermMemory` or `WorkingMemory`
+ <Image src={image11} alt="" />
+ - WorkingMemory returns []
+ - LongTermMemory also returns []
+
+#### Let's get a basic understanding of the participants endpoint
+
+For a given chatId, looks like you can both get a list of participants and add participants
+
+Putting in our chatId we get a list of one participants
+<Image src={image12} alt="" />
+
+Attempting now to add a participant - response 'User is already in the chat session'
+<Image src={image13} alt="" />
+
+#### Let's add some additional docs, this time to the chatId upload endpoint
+
+New doc successfully uploaded to chatID endpoint
+<Image src={image14} alt="" />
+
+Again a successful summary after asking about the second document
+<Image src={image15} alt="" />
+
+#### Adding more docs - TO DO: find out which objects are holding these doc embeddings and how they increase in size as we add docs
+
+So let's debug what happens when we add a doc
+
+Code passes in an `IKernelMemory` `memoryClient`
+<Image src={image16} alt="" />
+
+The code then progresses to a method that is has a summary saying `Try to create a chat message that represents document upload`
+
+## RAG-VectorStore
+
+The documents that I will vectorize will be transcripts from a youtube podcast.  The idea will be that I would like to be able to talk to a kernel that is connected to this database and ask questions about the data.  The kernel will have a plugin that will be invoked that will query the vector db based on the content of the request and return relevant data before responding with an answer.
+
+#### Qdrant
+
+I'll start by setting up the qdrant connector.
+
+[Using the Semantic Kernel Qdrant Vector Store connector (Preview) | Microsoft Learn](https://learn.microsoft.com/en-us/semantic-kernel/concepts/vector-store-connectors/out-of-the-box-connectors/qdrant-connector?pivots=programming-language-csharp)
+
+Add Qdrant credentials in `appsettings.json`
+```json
+"Qdrant": {
+        //"APIKey": "", // dotnet user-secrets set "KernelMemory:Services:Qdrant:APIKey" "MY_QDRANT_KEY"
+        "APIKey": "your-api-key",
+        "Endpoint": "your-endpoint"
+      },
+```
+
+Successfully able to start the service after adding to webapi/appsettings.json
+```json
+"KernelMemory"{
+"MemoryDbTypes": [
+        "Qdrant"
+      ],
+}
+```
+
+When developing plugins for RAG pick either Semantic search vs Classic search
+
+Read the readme in /webapi for qdrant info
+
+#### Weaviate
+[Using the Semantic Kernel Weaviate Vector Store connector (Preview) | Microsoft Learn](https://learn.microsoft.com/en-us/semantic-kernel/concepts/vector-store-connectors/out-of-the-box-connectors/weaviate-connector?pivots=programming-language-csharp)
+
+All of the vector store connectors can be used for text search
+[Semantic Kernel Text Search with Vector Stores (Preview) | Microsoft Learn](https://learn.microsoft.com/en-us/semantic-kernel/concepts/text-search/text-search-vector-stores?pivots=programming-language-csharp)
+
+`dotnet add package Microsoft.SemanticKernel.Connectors.Weaviate --prerelease`
+
+In Program.cs
+`builder.Services.AddWeaviateVectorStore(options: new() { Endpoint = new Uri("http://localhost:8080/v1/") });`
+
+#### InMemoryVectorStore
+
+After doing a little more reading up on the newest elements of semantic kernel there were a few articles about using an InMemoryVectorStore so this is what I'm going to implement initially.  As this project progresses I will plan to test different vector db to see which performs the best.
+
+Here are some links to microsoft articles I referenced
+[What are Semantic Kernel Vector Store connectors? (Preview) | Microsoft Learn](https://learn.microsoft.com/en-us/semantic-kernel/concepts/vector-store-connectors/?pivots=programming-language-csharp)
+
+[Introducing Microsoft.Extensions.VectorData Preview - .NET Blog](https://devblogs.microsoft.com/dotnet/introducing-microsoft-extensions-vector-data/)
+[Semantic Kernel Text Search with Vector Stores (Preview) | Microsoft Learn](https://learn.microsoft.com/en-us/semantic-kernel/concepts/text-search/text-search-vector-stores?pivots=programming-language-csharp)
+
+Here is the code I've added to the project
+
+The biggest piece is the addition of new controller endpoints to facilitate loading data into the vector store and testing search capabilities.
+
+```c
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using CopilotChat.WebApi.Models.Request;
+using CopilotChat.WebApi.Services;
+using Google.Apis.Logging;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.VectorData;
+using Microsoft.KernelMemory.AI;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Embeddings;
+
+namespace CopilotChat.WebApi.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class VectorStoreController : ControllerBase
+{
+    private readonly ILogger<VectorStoreController> _logger;
+    private readonly DocumentTypeProvider _documentTypeProvider;
+    private readonly IEmbeddingGenerationService<string, float> _embeddingService;
+    public VectorStoreController(ILogger<VectorStoreController> logger, DocumentTypeProvider documentTypeProvider)
+    {
+        _logger = logger;
+        _documentTypeProvider = documentTypeProvider;
+        _embeddingService = new OpenAITextEmbeddingGenerationService(
+                "text-embedding-ada-002",
+                openAIAPIKey);
+    }
+
+    /// <summary>
+    /// Processes a text document and stores its vectors.
+    /// </summary>
+    [Route("process")]
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ProcessDocumentAsync(
+        [FromServices] Kernel kernel,
+        [FromForm] DocumentImportForm documentImportForm
+    )
+    {
+        try
+        {
+            if (!await ValidateDocumentImportAsync(documentImportForm))
+            {
+                return BadRequest("Invalid document submission");
+            }
+
+            var vectorStoreRecordCollection = kernel.GetRequiredService<IVectorStoreRecordCollection<Guid, TranscriptText>>();
+            if (vectorStoreRecordCollection == null)
+            {
+                return StatusCode(500, "Vector store service not available");
+            }
+
+            await vectorStoreRecordCollection.CreateCollectionIfNotExistsAsync();
+            var results = new List<ProcessingResult>();
+
+            foreach (var file in documentImportForm.FormFiles)
+            {
+                try
+                {
+                    _logger.LogInformation("Processing file {FileName} for vector storage", file.FileName);
+
+                    // Read and parse the file content
+                    string fileContent;
+                    using (var streamReader = new StreamReader(file.OpenReadStream()))
+                    {
+                        fileContent = await streamReader.ReadToEndAsync();
+                    }
+
+                    // Split into lines and parse each line
+                    var jsonItems = JsonSerializer.Deserialize<List<JsonTranscriptItem>>(fileContent);
+                    if (jsonItems == null)
+                    {
+                        _logger.LogWarning("Failed to parse JSON content for file {FileName}", file.FileName);
+                        results.Add(new ProcessingResult
+                        {
+                            FileName = file.FileName,
+                            Success = false,
+                            ErrorMessage = "Failed to parse JSON content"
+                        });
+                        continue;
+                    }
+
+                    // Convert to TranscriptText
+                    var transcripts = jsonItems.Select(item => new TranscriptText
+                    {
+                        Id = Guid.NewGuid(),
+                        Text = item.text ?? string.Empty,
+                        StartTime = item.metadata.timestamp_start,
+                        EndTime = item.metadata.timestamp_end,
+                        EpisodeDate = DateTime.Parse(item.metadata.date),
+                        EpisodeNumber = item.metadata.episode_number.ToString(),
+                        EpisodeTitle = item.metadata.episode_title ?? string.Empty,
+                        ChunkTopic = item.metadata.chunk_topic ?? string.Empty,
+                        Topics = item.metadata.topics ?? string.Empty
+                    }).ToList();
+
+                    // Process transcripts in batches
+                    var batchSize = 100; // Adjust based on your needs
+                    for (int i = 0; i < transcripts.Count; i += batchSize)
+                    {
+                        var batch = transcripts.Skip(i).Take(batchSize).ToList();
+                        var textsToEmbed = batch.Select(t => t.Text).ToList();
+
+                        // Generate embeddings for the batch
+                        var embeddings = await _embeddingService.GenerateEmbeddingsAsync(
+                            textsToEmbed,
+                            kernel,
+                            CancellationToken.None);
+
+                        // Create TranscriptText instances with embeddings
+                        var processedTranscripts = batch.Select((transcript, index) => new TranscriptText
+                        {
+                            Id = transcript.Id,
+                            Text = transcript.Text,
+                            StartTime = transcript.StartTime,
+                            EndTime = transcript.EndTime,
+                            EpisodeDate = transcript.EpisodeDate,
+                            EpisodeNumber = transcript.EpisodeNumber,
+                            EpisodeTitle = transcript.EpisodeTitle,
+                            ChunkTopic = transcript.ChunkTopic,
+                            Topics = transcript.Topics,
+                            Embedding = embeddings[index].ToArray()
+                        });
+
+                        // Upsert batch
+                        try
+                        {
+                            await foreach (var recordId in vectorStoreRecordCollection.UpsertBatchAsync(
+                                processedTranscripts,
+                                cancellationToken: CancellationToken.None))
+                            {
+                                var processedTranscript = batch.First(t => t.Id.Equals(recordId));
+                                results.Add(new ProcessingResult
+                                {
+                                    FileName = file.FileName,
+                                    RecordId = processedTranscript.Id,
+                                    Success = true
+                                });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error upserting transcripts batch for file {FileName}", file.FileName);
+                            foreach (var transcript in batch)
+                            {
+                                results.Add(new ProcessingResult
+                                {
+                                    FileName = file.FileName,
+                                    RecordId = transcript.Id,
+                                    Success = false,
+                                    ErrorMessage = ex.Message
+                                });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing file {FileName}", file.FileName);
+                    results.Add(new ProcessingResult
+                    {
+                        FileName = file.FileName,
+                        Success = false,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+
+            return Ok(new ProcessingResponse
+            {
+                Results = results,
+                TotalProcessed = results.Count,
+                SuccessfulCount = results.Count(r => r.Success)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in document processing endpoint");
+            return StatusCode(500, "An error occurred while processing the documents");
+        }
+    }
+
+    public class ProcessingResult
+    {
+        public string FileName { get; set; } = string.Empty;
+        public Guid RecordId { get; set; }
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class ProcessingResponse
+    {
+        public IEnumerable<ProcessingResult> Results { get; set; } = Array.Empty<ProcessingResult>();
+        public int TotalProcessed { get; set; }
+        public int SuccessfulCount { get; set; }
+    }
+
+    /// <summary>
+    /// Searches for similar transcript segments
+    /// </summary>
+    [HttpPost("search")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchAsync(
+        [FromServices] Kernel kernel,
+        [FromBody] SearchRequest request)
+    {
+        try
+        {
+            // Generate embedding for the search query
+            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(
+                request.QueryText,
+                kernel,
+                CancellationToken.None);
+
+            // Create search options
+            var searchOptions = new VectorSearchOptions
+            {
+                Top = request.MaxResults ?? 100,
+                Skip = 0,
+                IncludeVectors = false,
+                IncludeTotalCount = true,
+                VectorPropertyName = "Embedding" // Name of the property in TranscriptText with VectorStoreRecordVector attribute
+            };
+
+            var vectorStoreRecordCollection = kernel.GetRequiredService<IVectorStoreRecordCollection<Guid, TranscriptText>>();
+            if (vectorStoreRecordCollection == null)
+            {
+                return StatusCode(500, "Vector store service not available");
+            }
+
+            // Search using vectorized search
+            var searchResults = await vectorStoreRecordCollection.VectorizedSearchAsync(
+                queryEmbedding,
+                searchOptions);
+
+
+            // Convert to response format
+            var results = await searchResults.Results.Select(result => new SearchResultRecord
+            {
+                Id = result.Record.Id,
+                Text = result.Record.Text,
+                EpisodeNumber = result.Record.EpisodeNumber,
+                EpisodeDate = result.Record.EpisodeDate,
+                EpisodeTitle = result.Record.EpisodeTitle,
+                ChunkTopic = result.Record.ChunkTopic,
+                Topics = result.Record.Topics,
+                // The underlying library should provide a similarity score if available.
+                // If not, you may store or compute it separately. Here we assume result.Score is available.
+                // RelevanceScore = result.Score
+            }).ToListAsync();
+
+            return Ok(new SearchResponse
+            {
+                Results = results,
+                TotalResults = (int)searchResults.TotalCount
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing transcript search");
+            return StatusCode(500, "An error occurred during search");
+        }
+    }
+
+    public class SearchRequest
+    {
+        public string QueryText { get; set; } = string.Empty;
+        public int? MaxResults { get; set; }
+        public float? MinRelevanceScore { get; set; }
+    }
+
+    public class SearchResultRecord
+    {
+        public Guid Id { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string EpisodeNumber { get; set; } = string.Empty;
+        public DateTime EpisodeDate { get; set; }
+        public string EpisodeTitle { get; set; } = string.Empty;
+        public string ChunkTopic { get; set; } = string.Empty;
+        public string Topics { get; set; } = string.Empty;
+        public float RelevanceScore { get; set; }
+    }
+
+    public class SearchResponse
+    {
+        public IEnumerable<SearchResultRecord> Results { get; set; } = Array.Empty<SearchResultRecord>();
+        public int TotalResults { get; set; }
+    }
+
+    private async Task<bool> ValidateDocumentImportAsync(DocumentImportForm documentImportForm)
+    {
+        if (!documentImportForm.FormFiles.Any())
+        {
+            return false;
+        }
+
+        foreach (var file in documentImportForm.FormFiles)
+        {
+            if (file.Length == 0)
+            {
+                return false;
+            }
+
+            var fileType = Path.GetExtension(file.FileName);
+            if (!_documentTypeProvider.IsSupported(fileType, out _))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Classes for deserializing input JSON
+    private class JsonTranscriptItem
+    {
+        public string text { get; set; } = string.Empty;
+        public JsonMetadata metadata { get; set; } = new JsonMetadata();
+    }
+
+    private class JsonMetadata
+    {
+        public string date { get; set; } = string.Empty;
+        public int episode_number { get; set; }
+        public string episode_title { get; set; } = string.Empty;
+        public double timestamp_start { get; set; }
+        public double timestamp_end { get; set; }
+        public string chunk_topic { get; set; } = string.Empty;
+        public string topics { get; set; } = string.Empty;
+    }
+}
+
+```
+
+Add the InMemoryVector store objects to DI.  Inside SemanticKernelProvider.cs
+```csharp
+builder.AddInMemoryVectorStore();
+builder.AddInMemoryVectorStoreRecordCollection<Guid, TranscriptText>("records");
+```
+
+As a caveat I built this controller to handle a very specific json file format and structure.  More about that structure to follow but here I'll just mention that the structure I chose was for modeling youtube podcast transcripts.  Using python I coded up a few scripts to download a youtube audio only file and along with a that create a description text file file. Another script is then executed to take the audio file and using whisper, transcribe the audio, once the audio is transcribed that same script will combine the text file with the transcribed audio output and create a final output which is a json file like this, where each object represents 30 seconds of transcribed text.
+
+Here is the csharp object that represents the 30 seconds to transcribed text along with metadata.
+```csharp
+using System;
+using Microsoft.Extensions.VectorData;
+using Microsoft.SemanticKernel.Data;
+
+public sealed class TranscriptText
+{
+    [VectorStoreRecordKey]
+    public Guid Id { get; set; }
+
+    [VectorStoreRecordData(IsFullTextSearchable = true)]
+    public string Text { get; set; } = string.Empty;
+
+    [VectorStoreRecordData(IsFilterable = true)]
+    public double StartTime { get; set; }
+
+    [VectorStoreRecordData(IsFilterable = true)]
+    public double EndTime { get; set; }
+
+    [VectorStoreRecordData(IsFilterable = true)]
+    public DateTime EpisodeDate { get; set; }
+
+    [VectorStoreRecordData(IsFilterable = true)]
+    public string EpisodeNumber { get; set; } = string.Empty;
+
+    [VectorStoreRecordData(IsFilterable = true)]
+    public string EpisodeTitle { get; set; } = string.Empty;
+
+    [VectorStoreRecordData(IsFullTextSearchable = true)]
+    public string ChunkTopic { get; set; } = string.Empty;
+
+    [VectorStoreRecordData(IsFullTextSearchable = true)]
+    public string Topics { get; set; } = string.Empty;
+
+    [VectorStoreRecordVector(1536)]
+    public ReadOnlyMemory<float> Embedding { get; init; }
+
+}
+```
+
+And lastly here is a sample of the whisper json output.
+```json
+[
+  {
+    "text": "Topic: No specific topic Spoken Words: Yeah. Greetings, Travelie. You've just landed on the Mikey and me podcast, but fear not for this is no mistake. No baldness stars, no glitch in the matrix. No, I'm afraid this has all been planned, predetermined by powers no not to us. So pull up a chair and join us as we find our way together for you or among friends. Hello friends. Friend Jeff. Jeff. He's back in front of me. You moved him. Yep. I just you know it. I just wanted to have Jeff put that happen to work. I wanted him to be in front of us. Jeff has been moved. Jeff is back at night. A front center. Well, I can front and center part of our lives. For those of you who are wondering what we're saying, we're on our little monitor. He was off to our right now. He's on the big screen. Jeff finally made it to the big screen guys. He's been chasing that dream. Said boys, you see me up on that screen. I said, I'm a do whatever I can to help that dream come true.",
+    "metadata": {
+      "date": "12-09-2024",
+      "episode_number": 606,
+      "episode_title": "Hawk Tuah Crypto Scam; 1991's Best Films; Precognition & Time Loops; History #funny #btc",
+      "timestamp_start": 0.0,
+      "timestamp_end": 64.0,
+      "chunk_topic": "No specific topic",
+      "topics": "Hawk,Tuah,Crypto,Scam,1991s,Best,Films,Precognition,Time,Loops,History,funny,btc"
+    }
+  },
+  {
+    "text": "Topic: No specific topic Spoken Words: I'm not a lie. I think I pretty much did it all for you. I know we're all pretty excited about it. That's excited. That's teamwork. Someone's got to be there to be carried in order for the team to do it. It's true, Mama. I did it, Mama. Cool. Mikey forgot something very important. Oh, Jeff thought Jeff thought. Jeff sabotaged me. Oh, we got rid of it. Jeff sabotaged. We had to be done. No. We had to put that segment down. No. That's the segment's fighting for its life right now. You looking for your phones. It's not that. It's not my phone. No. I'm looking for my information providing. I have a I have a tablet specifically for the said subject. It's a rainy 47 degrees to nine dollars Texas. So if you're out about be sure to take a jacket and umbrella. Because it's a cold wetland out there. If you happen to find yourself in Santa Clara, California.",
+    "metadata": {
+      "date": "12-09-2024",
+      "episode_number": 606,
+      "episode_title": "Hawk Tuah Crypto Scam; 1991's Best Films; Precognition & Time Loops; History #funny #btc",
+      "timestamp_start": 64.0,
+      "timestamp_end": 129.0,
+      "chunk_topic": "No specific topic",
+      "topics": "Hawk,Tuah,Crypto,Scam,1991s,Best,Films,Precognition,Time,Loops,History,funny,btc"
+    }
+  }
+]
+```
+
+Seed the initial conversation with content from the most recent episode.
+
+## Nextjs-WebApp
+
+Moving over the the webapp for a little while.  I spent a couple hours figuring out the SignalRConnection, creating the chatService.js component and updating the chatMappers.js and apiService.js.
+
+```js
+// /utils/chatService.js
+import { signalRService } from './signalRService';
+import { ThreadService } from './apiService';
+
+class ChatService {
+    constructor() {
+        this.messageHandlers = new Set();
+        this.initialized = false;
+        this.setupMessageHandler();
+    }
+
+    setupMessageHandler() {
+        const initializeInterval = setInterval(() => {
+            if (signalRService.isConnected() && !this.initialized) {
+                this.initializeMessageHandler();
+                this.initialized = true;
+                clearInterval(initializeInterval);
+            }
+        }, 100);
+
+        setTimeout(() => clearInterval(initializeInterval), 10000);
+    }
+
+    initializeMessageHandler() {
+        const connection = signalRService.getConnection();
+        if (!connection) return;
+
+        // Listen for bot response status updates
+        connection.on("ReceiveBotResponseStatus", (chatId, status) => {
+            this.messageHandlers.forEach(handler => {
+                handler({
+                    type: 'status',
+                    chatId,
+                    status
+                });
+            });
+        });
+
+        // Listen for message events
+        connection.on("ReceiveMessage", (chatId, senderId, message) => {
+            this.messageHandlers.forEach(handler => {
+                handler({
+                    type: 'message',
+                    chatId,
+                    senderId,
+                    ...message
+                });
+            });
+        });
+
+        // Listen for typing state
+        connection.on("ReceiveUserTypingState", (chatId, userId, isTyping) => {
+            this.messageHandlers.forEach(handler => {
+                handler({
+                    type: 'typing',
+                    chatId,
+                    userId,
+                    isTyping
+                });
+            });
+        });
+
+        connection.onreconnected(() => {
+            this.messageHandlers.forEach(handler => {
+                connection.on("ReceiveMessage", (chatId, senderId, message) => 
+                    handler({ type: 'message', chatId, senderId, ...message }));
+                connection.on("ReceiveUserTypingState", (chatId, userId, isTyping) => 
+                    handler({ type: 'typing', chatId, userId, isTyping }));
+            });
+        });
+    }
+
+    subscribeToMessages(handler) {
+        this.messageHandlers.add(handler);
+        
+        if (signalRService.isConnected()) {
+            const connection = signalRService.getConnection();
+            if (connection) {
+                connection.on("ReceiveMessage", (chatId, senderId, message) => 
+                    handler({ type: 'message', chatId, senderId, ...message }));
+                connection.on("ReceiveUserTypingState", (chatId, userId, isTyping) => 
+                    handler({ type: 'typing', chatId, userId, isTyping }));
+            }
+        }
+
+        return () => {
+            this.messageHandlers.delete(handler);
+            if (signalRService.isConnected()) {
+                const connection = signalRService.getConnection();
+                if (connection) {
+                    connection.off("ReceiveMessage");
+                    connection.off("ReceiveBotResponseStatus");
+                }
+            }
+        };
+    }
+
+    // Thread management methods using REST API
+    async createThread(threadData) {
+        const chatSessionData = mapThreadToChatSession(threadData);
+        const response = await ThreadService.createThread(chatSessionData);
+        return response; // ThreadService already maps the response
+    }
+
+    async deleteThread(threadId) {
+        return await ThreadService.deleteThread(threadId);
+    }
+
+    async updateThread(threadId, threadData) {
+        const chatSessionData = mapThreadToChatSession(threadData);
+        const response = await ThreadService.updateThread(threadId, chatSessionData);
+        return response; // ThreadService already maps the response
+    }
+
+    async getThread(threadId) {
+    try {
+        const thread = await ThreadService.getThread(threadId);
+        if (!thread) {
+            throw new Error('Thread not found');
+        }
+        return thread;
+    } catch (error) {
+        console.error('Error getting thread:', error);
+        throw error;
+    }
+    }
+
+    async sendMessage(threadId, content) {
+        if (!signalRService.isConnected()) {
+            throw new Error('SignalR connection is not established');
+        }
+
+        try {
+            const response = await fetch(`/chats/${threadId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    input: content,
+                    variables: {}
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to send message: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error sending message:', error);
+            throw error;
+        }
+    }
+
+async joinThread(threadId) {
+        if (!signalRService.isConnected()) {
+            throw new Error('SignalR connection is not established');
+        }
+
+        const connection = signalRService.getConnection();
+        if (!connection) {
+            throw new Error('SignalR connection is not available');
+        }
+
+        try {
+            // Get the thread details
+            const thread = await this.getThread(threadId);
+            
+            // Join the SignalR group using the correct method
+            await connection.invoke("AddClientToGroupAsync", threadId);
+            
+            return thread;
+        } catch (error) {
+            console.error('Error joining thread:', error);
+            throw error;
+        }
+    }
+
+    async leaveThread(threadId) {
+        if (!signalRService.isConnected()) {
+            throw new Error('SignalR connection is not established');
+        }
+
+        const connection = signalRService.getConnection();
+        if (!connection) {
+            throw new Error('SignalR connection is not available');
+        }
+
+        try {
+            // Since there's no explicit leave method in the hub,
+            // we'll just return true. The connection will be cleaned up
+            // when the client disconnects.
+            return true;
+        } catch (error) {
+            console.error('Error leaving thread:', error);
+            return false;
+        }
+    }
+
+    async sendMessage(threadId, content) {
+        if (!signalRService.isConnected()) {
+            throw new Error('SignalR connection is not established');
+        }
+
+        try {
+            const response = await fetch(`/chats/${threadId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    input: content,
+                    variables: {}
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to send message: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error sending message:', error);
+            throw error;
+        }
+    }
+}
+
+export const chatService = new ChatService();
+export default chatService;
+```
+
+#### I want the webapp to generate it's list of Threads based on what is in /chats webapi endpoint
+
+## Troubleshooting-Guide
 #### Error when deploying to GCP - 503 Service Unavailable
 
-Issue was happening because the app was setup to listen on https using port 40443.  GCP requires apps to listen on HTTP 8080.
+- Issue was happening because the app was setup to listen on https using port 40443.  GCP requires apps to listen on HTTP 8080.
+
+#### GCP credential errors when deploying to Docker locally
+
+- This was because I didn't give the container access to the application default credentials file for GCP authentication.  After building the image, the run command must be run in powershell and include a volume mount for the file and an env var flag.
+```
+docker run -p 8080:8080 --user 0 \
+  -v /c/Users/etexd/AppData/Roaming/gcloud/application_default_credentials.json:/app/adc.json \
+  -e GOOGLE_APPLICATION_CREDENTIALS="/app/adc.json" \
+  us-south1-docker.pkg.dev/sk-webapi/sk-webapi-repo/skwebapi:latest
+
+```
+
+#### OpenAi API key authentication error when running locally and trying to send a message to a created chat
+
+- Azure.RequestFailedException: Incorrect API key provided: sk-chat-*******************************************************QZQD. You can find your API key at https://platform.openai.com/account/api-keys.
+      Status: 401 (Unauthorized)
+      ErrorCode: invalid_api_key
+- This was happening because there were previously used keys in `dotnet user-secrets`
+	- `dotnet user-secrets remove KernelMemory:Services:OpenAI:APIKey`
+	- `dotnet user-secrets remove SemanticMemory:Services:OpenAI:APIKey`
+- After removing the old secrets the chat message endpoint worked as expected and I received a response from ChatGPT using the api key provided in 'appsettings.json'
+
+#### After adding GCP Secret Manager code and building docker image - GCP Secret Manager Client default credentials were not found
+
+- I kind of expected this because I had my doubts about the current code working to authenticate with GCP when attempting to get the keys.  I knew there had to be permission check before the application could get the key from secret manager.  But it worked fine running locally in vscode terminal. - Come to find out this was only because I have gcp default credentials setup on this machine and the application was smart enough to know to use those.
+- When running the app in docker, the instance does not have access to these default creds.
+- When running the container in GCP when it is inside the same project as the secret manager all that needs to be done is to grant the following role permissions to the default compute service account.
+	- `gcloud projects add-iam-policy-binding sk-webapi --member="serviceAccount:'default-service-acct'" --role="roles/secretmanager.secretAccessor"`
+
+#### After making changes to try and get the VectorStore and Search working I'm now getting an error when sending a chat message - GetUserIntentAsyncFailed
+<Image src={image17} alt="" />
+
+#### During memory searches inside ChatPlugin the final response message from the AI includes a document reference which is not good for the user experience.
+<Image src={image18} alt="" />
+
+Looking at the debug I can see that the document is being returned from DocumentMemory -"chatmemory" with a chatId of all zeros.  This document was uploaded many restarts back, I don't know why it still persists.
+<Image src={image19} alt="" />
+
+The returned memoryText includes the statement "quote the document link in square brackets at the end of each sentence that refers the snippet in your response"
+<Image src={image20} alt="" />
+
+Looks like this is expected behavior when the response references a document.  Will keep this in place for now.  Moving to another env other than local debug should remove the reference to that doc.
+
+#### After deploying the nextjs webapp to gcp and app attempts to call the webapi endpoints and signal r connection - get errors related to CORS
+- `Access to XMLHttpRequest at 'https://skwebapi8080http-879200966247.us-south1.run.app/api/SuggestedQuestions/all' from origin 'https://skwebapp-879200966247.us-south1.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.`
+- There is a 'AllowedOrigins' in appsettings.json - add frontend url to this config section
+- set the NEXT_PUBLIC_API_URL env var in the webapp cloud run instance
+- After making these changes and deploying frontend the app was able to successfully make the signalr connection and make successful calls to http endpoints
+- Another issue I noticed was that app will work from a desktop browser but not from ios.  On ios the app just hangs on 'attempting to connect to the backend api using signalr'
+- I've tried a few changes to the apiservice and signalrservice but the webapp does not pull the env var - it is still trying to use localhost:8080 as the backend url
+- Finally was able to get the webapp to pull the env for the cloud run webapi url by adding it into the Dockerfile and building
+```bash
+# Add this line before the build
+ENV NEXT_PUBLIC_API_URL=cloud-run-webapi-url
+
+# Build the Next.js application
+RUN npm run build
+```
+- Even after pulling the correct env the webapp was not able to connect to the webapi, I had to go into the cloud run instance and select the option that says allow ingress all
+  <Image src={image21} alt="" />
+
+#### After most recent update to both the frontend and backend revisions there started appearing signalr connection errors
+- `Error: Connection disconnected with error 'Error: WebSocket closed with status code: 1006 (no reason given).`
+- I suspect that this error might have to do with the webapi being a cloud run instance.  All cloud run instances are behind a GCP load balancer which could be causing the signalr connection to disconnect.  Will need to investigate this further to find out the root cause and solution.

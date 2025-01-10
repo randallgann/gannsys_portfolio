@@ -1,0 +1,115 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+
+export const article = {
+  author: 'Randall Gann',
+  date: '2024-12-14',
+  title: 'Publish Obsidian Files To This Blog',
+  description: "Here I go through an automation process I recently implemented for this blog.  As a user of Obsidian I wanted to be able to write content in Obsidian and automatically convert the content into the mdx format used for the articles in this blog.  It is a simple script that runs at build time and updates all blog articles with the most recent content found in my obsidian fault.",
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+
+
+If you're like me and you struggle to keep chaotic thoughts organized, you might have had reason to adopt one of the many note taking systems available.  
+
+I have been working with Obsidian now for a little over a year and the number of vaults and individual notes within each vault has grown to the point where I've found myself struggling to keep track of where I wrote this or documented that.
+
+Taking inspiration from this [blog post]([How I Publish Obsidian Files to the Web](https://www.curiouslychase.com/posts/how-i-publish-obsidian-files-to-the-web)) where Chase Adams explains how he implemented Obsidian files into his website I'm going to do the same for my cardboard box along the internet freeway.
+
+Using the same script Chase provided in his write-up I'm going to make a few adjustments.
+```js
+import fs from "fs";
+import matter from "gray-matter";
+import { format } from "date-fns";
+
+const EMBED_LINK_REGEX = /!\[\[([a-zA-ZÀ-ÿ0-9-'?%.():&,+/€_! ]+)\]\]/g;
+const imagesDir = `${process.env.OBSIDIAN_VAULT_PATH_FROM_HOME}/Screenshots`;
+const folderPath = `${process.cwd()}/src/app/articles`;
+
+async function getDirContents(directory: string, copied: { notes: number; images: number }) {
+  const contents = fs.readdirSync(directory);
+  for (const filename of contents) {
+    const filepath = `${directory}/${filename}`;
+    const filestat = fs.statSync(filepath);
+  
+    if (filestat.isDirectory()) {
+      await getDirContents(filepath, copied);
+    } else if (filepath.match(/\.mdx?/)) {
+      const content = fs.readFileSync(filepath, "utf-8");
+      const result = matter(content);
+
+      if (
+        result.data.status &&
+        result.data.status.toLowerCase() === "published"
+      ) {
+
+        if (!result.data.date) {
+          result.data.date = format(filestat.birthtime, "yyyy-MM-dd");
+        }
+        if (!result.data.modified) {
+          result.data.modified = format(filestat.mtime, "yyyy-MM-dd");
+        }
+
+        const foundEmbed = content.match(EMBED_LINK_REGEX);
+        
+        if (foundEmbed?.length) {
+          for (const image of foundEmbed) {
+            const sanitizedImageName = image
+              .replace(/^\!\[\[/, "")
+              .replace(/\]\]$/, "");
+            const path = `${imagesDir}/${sanitizedImageName}`;
+            const file = fs.readFileSync(path);
+            fs.writeFileSync(
+              `${process.cwd()}/public/img/notes/${sanitizedImageName}`,
+              new Uint8Array(file)
+            );
+          }
+        }
+
+        const splitPath = filepath.split("/");
+        const filename = splitPath.pop();
+
+        if (!filename) {
+          throw new Error(`unable to get filename from ${filepath}`);
+        }
+
+        fs.mkdirSync(folderPath, { recursive: true });
+        const newPath = filename.replace(/\s+/g, "+");
+
+        fs.writeFileSync(
+          `${folderPath}/${newPath}`,
+          matter.stringify(result.content, result.data)
+        );
+      }
+    }
+  }
+}
+
+async function main() {
+
+  const vaultPath = process.env.OBSIDIAN_VAULT_PATH_FROM_HOME;
+  if (!vaultPath) {
+    throw new Error("Environment variable OBSIDIAN_VAULT_PATH_FROM_HOME is not defined");
+  }
+  const copied = { notes: 0, images: 0 };
+  await getDirContents(vaultPath, copied);
+  console.log(`Notes copied: ${copied.notes}`);
+  console.log(`Images copied: ${copied.images}`);
+}
+
+main();
+```
+
+
+Commands
+
+```
+npm run prebuild:cpFiles
+```
